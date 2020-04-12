@@ -1,10 +1,51 @@
-import cocos.layer
-import cocos.collision_model as cm
+from collections import defaultdict
 
-import PlayerCannon
+from pyglet.image import load, ImageGrid, Animation
+from pyglet.window import key
+
+import cocos.layer
+import cocos.sprite
+import cocos.collision_model as cm
+import cocos.euclid as eu
+
+class Actor(cocos.sprite.Sprite):
+    def __init__(self, image, x, y):
+        super(Actor, self).__init__(image)
+        self.position = eu.Vector2(x, y)
+        self.cshape = cm.AARectShape(self.position,
+                                     self.width * 0.5,
+                                     self.height * 0.5)
+
+    def move(self, offset):
+        self.position += offset
+        self.cshape.center += offset
+
+    def update(self, elapsed):
+        pass
+
+    def collide(self, other):
+        pass
+
+class PlayerCannon(Actor):
+    KEYS_PRESSED = defaultdict(int)
+
+    def __init__(self, x, y):
+        super(PlayerCannon, self).__init__('img/cannon.png', x, y)
+        self.speed = eu.Vector2(200, 0)
+
+    def update(self, elapsed):
+        pressed = PlayerCannon.KEYS_PRESSED
+        movement = pressed[key.RIGHT] - pressed[key.LEFT]
+        w = self.width * 0.5
+        if movement != 0 and w <= self.x <= self.parent.width - w:
+            self.move(self.speed * movement * elapsed)
+
+    def collide(self, other):
+        other.kill()
+        self.kill()
 
 class GameLayer(cocos.layer.Layer):
-    is_event_handler = True
+    is is_event_handler = True
 
     def on_key_press(self, k, _):
         PlayerCannon.KEYS_PRESSED[k] = 1
