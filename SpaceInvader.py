@@ -1,3 +1,4 @@
+import random
 from collections import defaultdict
 
 from pyglet.image import load, ImageGrid, Animation
@@ -37,9 +38,12 @@ class PlayerCannon(Actor):
 
     def update(self, elapsed):
         pressed = PlayerCannon.KEYS_PRESSED
+        space_pressed = pressed[key.SPACE] == 1
+        if PlayerShoot.INSTANCE is None and space_pressed:
+            self.parent.add(PlayerShoot(self.x, self.y + 50))
+
         movement = pressed[key.RIGHT] - pressed[key.LEFT]
-        w = self.width * 0.5
-        if movement != 0 and w <= self.x <= self.parent.width - w:
+        if movement != 0:
             self.move(self.speed * movement * elapsed)
 
     def collide(self, other):
@@ -79,7 +83,9 @@ class GameLayer(cocos.layer.Layer):
         self.score += score
 
     def create_alien_group(self, x, y):
-        pass
+        self.alien_group = AlienGroup(x, y)
+        for alien in self.alien_group:
+            self.add(alien)
 
     def update(self, dt):
         self.collman.clear()
@@ -87,8 +93,18 @@ class GameLayer(cocos.layer.Layer):
             self.collman.add(node)
             if not self.collman.knows(node):
                 self.remove(node)
+
+        self.collide(PlayerShoot.INSTANCE)
+        if self.collide(self.player):
+            self.respawn_player()
+        for column in self.alien_group.columns:
+            shoot = column.shoot()
+            if shoot is not None:
+                self.add(shoot)
+
         for _, node in self.children:
             node.update(dt)
+        self.alien_group.update(dt)
 
     def collide(self, node):
         if node is not None:
@@ -97,10 +113,13 @@ class GameLayer(cocos.layer.Layer):
                 return True
         return False
 
-    def create_alien_group(self, x, y):
-        self.alien_group = AlienGroup(x, y)
-        for alien in self.alien_group:
-            self.add(alien)
+    def respawn_player(self):
+        self.lives -= 1
+        if self.lives < 0:
+            self.unschedule(self.update)
+        else:
+            self.create_player()
+
 
 class Alien(Actor):
     def load_animation(imgage):
@@ -144,7 +163,11 @@ class AlienColumn(object):
     def remove(self, alien):
         self.aliens.remove(alien)
 
-    def shoot(self): pass
+    def shoot(self):
+        if random.random() < 0.001 and len(self.aliens) > 0:
+            pos = self.aliens[0].position
+            return Shoot(pos[0], pos[1] - 50)
+        return None
 
 
 class AlienGroup(object):
@@ -175,6 +198,34 @@ class AlienGroup(object):
         for column in self.columns:
             for alien in column.aliens:
                 yield alien
+
+
+class Shoot(Actor):
+    def __init__(self, x, y, img='img/shoot.png'):
+        super(Shoot, self).__init__(img, x, y)
+        self.speed = eu.Vector2(0, -400)
+
+    def update(self, elapsed):
+        self.move(self.speed * elapsed)
+
+
+class PlayerShoot(Shoot):
+    INSTANCE = None
+
+    def __init__(self, x, y):
+        super(PlayerShoot, self).__init__(x, y, 'img/laser.png')
+        self.speed *= -1
+        PlayerShoot.INSTANCE = self
+
+    def collide(self, other):
+        if isinstance(other, Alien):
+            self.parent.update_score(other.score)
+            other.kill()
+            self.kill()
+
+    def on_exit(self):
+        super(PlayerShoot, self).on_exit()
+        PlayerShoot.INSTANCE = None
 
 
 if __name__ == '__main__':
