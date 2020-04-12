@@ -4,7 +4,7 @@ import cocos.collision_model as cm
 import PlayerCannon
 
 class GameLayer(cocos.layer.Layer):
-    is is_event_handler = True
+    is_event_handler = True
 
     def on_key_press(self, k, _):
         PlayerCannon.KEYS_PRESSED[k] = 1
