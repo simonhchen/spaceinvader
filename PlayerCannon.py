@@ -1,6 +1,8 @@
 from collections import defaultdict
 from pyglet.window import key
 
+import Actor
+
 class PlayerCannon(Actor):
     KEYS_PRESSED = defaultdict(int)
 
