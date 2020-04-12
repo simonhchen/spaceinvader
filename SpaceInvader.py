@@ -109,6 +109,9 @@ class GameLayer(cocos.layer.Layer):
             node.update(dt)
         self.alien_group.update(dt)
 
+        if random.random() < 0.001:
+            self.add(MysteryShip(50, self.height - 50 ))
+
     def collide(self, node):
         if node is not None:
             for other in self.collman.iter_colliding(node):
@@ -256,6 +259,18 @@ class HUD(cocos.layer.Layer):
                                      anchor_y='center')
         game_over.position = w * 0.5, h * 0.5
         self.add(game_over)
+
+class MysteryShip(Alien):
+    SCORES = [10, 50, 100, 200]
+
+    def __init__(self, x, y):
+        score = random.choice(MysteryShip.SCORES)
+        super(MysteryShip, self).__init__('img/alien4.png', x, y,
+                                          score)
+        self.speed = eu.Vector2(150, 0)
+
+    def update(self, elapsed):
+        self.move(self.speed * elapsed)
 
 if __name__ == '__main__':
     cocos.director.director.init(caption="Space Invaders",
